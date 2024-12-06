@@ -11,35 +11,28 @@ function writeToFile(fileWriter, str)
 
 const logFile = x => writeToFile(fileWriter, x);
 
+// The only use of this function is to get rid of all the "Unable to read dynamic function table entry at" messages that gets
+// printed at every exception. This function will return the first line that doesn't contain the error message.
+// (I think this error message appears because the code is messing with the function table entries)
 function myExecuteCommand(command) {
-    // Execute the command in WinDbg and get the result
     let result = host.namespace.Debugger.Utility.Control.ExecuteCommand(command);
     
-    // Convert the result to an array of lines
     let resultArray = Array.from(result);
-
-    // The specific error message to check for
     const errorMessage = "Unable to read dynamic function table entry at";
 
     // Iterate through the result array to find the first element that doesn't contain the error message
     for (let line of resultArray) {
-        //log(`line: ${line}\n`);
         if (!line.includes(errorMessage)) {
-            //log(`returning line: ${line}\n`);
-            // Return the first line that does not contain the error message
             return line;
         }
     }
 
-    // If all lines contain the error message or the array is empty, return null
     return null;
 }
 
 function evaluateOperand(operand, isMemoryAccess, memoryLength) {
     const control = host.namespace.Debugger.Utility.Control;
     let to_ret = "";
-
-    //log(`operand: ${operand}, isMemoryAccess: ${isMemoryAccess}, memoryLength: ${memoryLength}\n`);
 
     if (isMemoryAccess) 
     {
@@ -58,11 +51,9 @@ function evaluateOperand(operand, isMemoryAccess, memoryLength) {
         pointer = pointer.split(/\s+/).slice(4).join(" ");
         let content = instructionData.split(/\s+/).slice(1).join(" ");
         to_ret = `${pointer} => ${content}`;  
-        //log(`instructionData: ${instructionData}, to_ret: ${to_ret}\n`);
     } else {
         let instructionData = myExecuteCommand(`? ${operand}`);
         to_ret = instructionData.split(/\s+/).slice(4).join(" ");
-        //log(`instructionData: ${instructionData}, to_ret: ${to_ret}\n`);
     }
 
     return to_ret;
@@ -96,7 +87,6 @@ function evaluateInstructionOperands(instruction) {
 
     if (!match) 
     {
-        // If the instruction doesn't match the expected format, return null
         return null;
     }
 
@@ -119,9 +109,6 @@ function deobfuscateExceptionHandler()
 
     logFile(`##### Deobfuscating exception #${counter} #####`);
     control.ExecuteCommand("t");
-
-    //log(`first instruction bytes: ${disassembler.DisassembleInstructions(host.namespace.Debugger.State.DebuggerVariables.curregisters.User.rip).First().CodeBytes[0].toString(16)}\n`);
-
    
     while(true)
     {
